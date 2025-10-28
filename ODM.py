@@ -178,10 +178,14 @@ class Model:
                 
             super().__setattr__(name, value)
                 
-        else: 
-            if hasattr(self, "_admissible_vars") and (name not in self._admissible_vars and name != "_location_var"):
+        else:
+            # Accept allowed attributes
+            if hasattr(self, "_admissible_vars") and (name in self._admissible_vars or name in self._required_vars or name == "_location_var"):
+                self._data[name] = value
+                
+            else:
+                # Ignore disallowed attributes
                 print(f"{name} is not an admissible attribute. The value-key pair will not be stored in the database.")
-                return
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -206,11 +210,11 @@ class Model:
         the existing document is updated with the new values.
         """            
         # Auto-geocode address
-        if self._location_var and self._location_var not in self._data:
+        if self._location_var:
             #Get org fieldname (key)
             coordinates_field = self._location_var.replace("_coordinates", "")
-            #See if the key is present and contains data
-            if coordinates_field in self._data and self._data[coordinates_field]:
+            #See if the key is present
+            if coordinates_field in self._data:
                 try:
                     #Try to get coordinates for adress
                     coordinates = getLocationPoint(self._data[coordinates_field])
@@ -230,48 +234,23 @@ class Model:
         data_to_save = self._data.copy()
         data_to_save.pop("_id", None)
         
-        
-        # Update based on first required field that exists in _data
-        unique_fields = {}
-        
-        for field in self._required_vars:
-            if field in self._data:
-                value = self._data[field]
-                unique_fields[field] = value
-            
-        #If the class has unique fields
-        if unique_fields:
-            try:
-                #Create query on the first unique field in list
-                query = {unique_fields[0]: self._data[unique_fields[0]]}
-                
-                #Save the data (without _id) based on query (unique field)
-                result = self._db.update_one(query, {"$set": data_to_save}, upsert=True)
-                
-                # Check if a new document was inserted
-                if result.upserted_id:
-                    self._data["_id"] = result.upserted_id
-                    print("New record inserted.")
-                    
-                else:
-                    # Find the _id of the updated document
-                    doc = self._db.find_one(query)
-                    
-                    if doc and "_id" in doc:
-                        self._data["_id"] = doc["_id"]
-                        
-                    print("Record updated.")
-        
-            except Exception as e:
-                raise RuntimeError(f"Save failed: {e}")  
-            
+        if "_id" in self._data and self._data["_id"]:
+            query = {"_id": self._data["_id"]}
         else:
-            # No unique required field, just insert
-            inserted = self._db.insert_one(data_to_save)
-            #Update _data for python object with the newly created ID
-            self._data["_id"] = inserted.inserted_id
+            query = {"name": self._data.get("name")}  # since 'name' is unique for User
             
-            print("New record inserted.")          
+        result = self._db.update_one(query, {"$set": data_to_save}, upsert=True)
+
+        if result.upserted_id:
+            self._data["_id"] = result.upserted_id
+            print("Inserted new user.")
+        else:
+            doc = self._db.find_one(query)
+            if doc:
+                self._data["_id"] = doc["_id"]
+            print("Updated existing user.")
+
+   
 
     def delete(self) -> None:
         """
@@ -303,8 +282,8 @@ class Model:
                 
         #Catch exceptions upon deletion 
         except Exception as e:
-            print(f"\nException occurred while deleting: {e}")            
-
+            print(f"\nException occurred while deleting: {e}") 
+            
     @classmethod
     def find(cls, filter: dict[str, str | dict]) -> Any:
         """
@@ -605,14 +584,12 @@ if __name__ == '__main__':
         print("Get first document...")
         first_user_found = next(iter(cursor), None)
         
-        if first_user_found['address_coordinates']['coordinates']:
-            print("Found:", first_user_found.name, first_user_found.email, first_user_found.address, first_user_found['address_coordinates']['coordinates'])
+        if first_user_found.address_coordinates:
+            print("Found:", first_user_found.name, first_user_found.email, first_user_found.address, first_user_found.address_coordinates['coordinates'])
             
         else:
             print("Found:", first_user_found.name, first_user_found.email, first_user_found.address, first_user_found.address_coordinates)
             
-            
-        
         # Modify value of allowed variable
         print("Changing value of OK attribute...")
         clara.age = 30
