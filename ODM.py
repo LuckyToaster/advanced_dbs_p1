@@ -111,9 +111,8 @@ class Model:
         kwargs : dict[str, str | dict]
             Dictionary with the model's attribute values
         """
-        #Initialize data with an empty dictionary and _location_var with none
+        #Initialize data with an empty dictionary
         super().__setattr__('_data', {})
-        super().__setattr__('_location_var', None)
         
         #Make sure the object is not created if required fields are missing
         missing = [var for var in self._required_vars if var not in kwargs]
@@ -128,20 +127,21 @@ class Model:
             
             #Check if the field is in the received kwargs
             if address_field in kwargs and self._location_var not in kwargs:
-                point = getLocationPoint(kwargs[address_field])
-                print(f"TESTING {point}")
-                
-                if point:
-                    # Store coordinates in location_var
-                    # This adds a NEW field that's not in kwargs originally
-                    # Convert Point to MongoDB GeoJSON dict format
-                    kwargs[self._location_var] = {
-                        "type": "Point",
-                        "coordinates": list(point.coordinates)
-                    }
+                try:
+                    point = getLocationPoint(kwargs[address_field])
                     
-                else:
-                    print(f"Warning: Could not geocode address: {kwargs[address_field]}")
+                    if point:
+                        # Store coordinates in location_var
+                        # This adds a NEW field that's not in kwargs originally
+                        # Convert Point to MongoDB GeoJSON dict format
+                        kwargs[self._location_var] = {
+                            "type": "Point",
+                            "coordinates": list(point.coordinates)
+                        }
+                        
+                except Exception as e:
+                    print(f"\nCould not geocode address '{kwargs[address_field]}'")
+                    print(f"Error: {e}")
         
         # validate all provided attributes (including the newly added location field)
         #Let "_id" bypass as this is assigned by mongodb and not by the python program
@@ -173,21 +173,15 @@ class Model:
             if not isinstance(value, dict):
                 raise TypeError("_data must be a dictionary")
             
-            #Uses settattr method from the parent class
-            #Accessing the original functionality of the setter
+                #Uses settattr method from the parent class
+                #Accessing the original functionality of the setter
+                
             super().__setattr__(name, value)
-            
-        else:
-            #Check so that the user does not add any variables not accepted by the models
-            #The required variables was already checked on the instantiation of the object
-            #Make sure _location_var can pass (is not stored in yaml but added if an adress is present on save)
+                
+        else: 
             if hasattr(self, "_admissible_vars") and (name not in self._admissible_vars and name != "_location_var"):
-                print(f"{name} is not an admissible attribute. The key can therefore not be accepted by the system.")
+                print(f"{name} is not an admissible attribute. The value-key pair will not be stored in the database.")
                 return
-            
-            #Store new/added data inside of the already excisting dictionary
-            #Updates an existing key-value pair or adds one
-            self._data[name] = value
 
     def __getattr__(self, name: str) -> Any:
         """
@@ -213,48 +207,71 @@ class Model:
         """            
         # Auto-geocode address
         if self._location_var and self._location_var not in self._data:
+            #Get org fieldname (key)
             coordinates_field = self._location_var.replace("_coordinates", "")
-            if coordinates_field in self._data:
-                coordinates = getLocationPoint(self._data[coordinates_field])
-                print(f"TESTING{coordinates}")
-            
-                if coordinates:
-                    self._data[self._location_var] = {
-                        "type": "Point",
-                        "coordinates": list(coordinates.coordinates)}
+            #See if the key is present and contains data
+            if coordinates_field in self._data and self._data[coordinates_field]:
+                try:
+                    #Try to get coordinates for adress
+                    coordinates = getLocationPoint(self._data[coordinates_field])
+                    
+                    #GeoJSON formatting
+                    if coordinates:
+                        self._data[self._location_var] = {
+                            "type": "Point",
+                            "coordinates": list(coordinates.coordinates)
+                        }
+                    
+                except Exception as e:
+                    print(f"Could not geocode address. Will only save address not coordinates")
+                    print(f"Error: {e}")
         
         # Prepare data to save (avoid DuplicateKeyError on _id)
         data_to_save = self._data.copy()
         data_to_save.pop("_id", None)
         
-        #Model object has _id
-        #Check if _id is in self._data, if yes, it should contain a value
-        if "_id" in self._data and self._data["_id"]:
+        
+        # Update based on first required field that exists in _data
+        unique_fields = {}
+        
+        for field in self._required_vars:
+            if field in self._data:
+                value = self._data[field]
+                unique_fields[field] = value
+            
+        #If the class has unique fields
+        if unique_fields:
             try:
-                query = {"_id": self._data["_id"]}
+                #Create query on the first unique field in list
+                query = {unique_fields[0]: self._data[unique_fields[0]]}
                 
-                #$set = update operator
-                #Upsert (update/insert depending on if the document already exists in the database)
+                #Save the data (without _id) based on query (unique field)
                 result = self._db.update_one(query, {"$set": data_to_save}, upsert=True)
                 
-                #If an upsert occured
+                # Check if a new document was inserted
                 if result.upserted_id:
-                    print("\nRecord already exists — the existing document was updated via upsert.")
-            
-                #If a new document was inserted
+                    self._data["_id"] = result.upserted_id
+                    print("New record inserted.")
+                    
                 else:
+                    # Find the _id of the updated document
+                    doc = self._db.find_one(query)
+                    
+                    if doc and "_id" in doc:
+                        self._data["_id"] = doc["_id"]
+                        
                     print("Record updated.")
-                        
+        
             except Exception as e:
-                raise RuntimeError(f"Upsert failed: {e}")
-                        
-        # New document, insert into the database
-        else:
-            result = self._db.insert_one(data_to_save)
+                raise RuntimeError(f"Save failed: {e}")  
             
-            if result.inserted_id:  
-                #Here we want to store the _id given by mongodb in the object _data attribute (not for pymongo but for the python program)
-                self._data["_id"] = result.inserted_id                  
+        else:
+            # No unique required field, just insert
+            inserted = self._db.insert_one(data_to_save)
+            #Update _data for python object with the newly created ID
+            self._data["_id"] = inserted.inserted_id
+            
+            print("New record inserted.")          
 
     def delete(self) -> None:
         """
@@ -374,8 +391,6 @@ class Model:
         cls._required_vars = required_vars
         cls._admissible_vars = admissible_vars
         
-        
-        
         # Loop through each type of index in dict of indexes
         # Create indexes in the db based on the received information
         # create_index() both initializes and ensures the index (meaning that if the index does not exist, it creates it but if it is already there, it does nothing)      
@@ -392,7 +407,7 @@ class Model:
 
             # Create 2dsphere index on the coordinates field
             cls._db.create_index([(cls._location_var, pymongo.GEOSPHERE)])
-            
+         
         else:
             cls._location_var = None
          
@@ -515,31 +530,35 @@ if __name__ == '__main__':
     
     #Load the example data
     print("Loading the example data into the database...")
-    json_files = {
-    "User": "./data/users.json",
-    "Company": "./data/companies.json",
-    "Educational_center": "./data/Educational_centers.json"
-    }
-    
-    for model_name, file_path in json_files.items():
-        model_class = globals().get(model_name)
-        if not model_class:
-            print(f"Model {model_name} not found in globals()")
-            continue
-
-        # Load JSON data
-        with open(file_path, "r", encoding="utf-8") as f:
-            documents = json.load(f)
+    try:
+        json_files = {
+        "User": "./data/users.json",
+        "Company": "./data/companies.json",
+        "Educational_center": "./data/Educational_centers.json"
+        }
         
-        # Insert documents
-        for document in documents:
-            try:
-                instance = model_class(**document)
-                instance.save()
-                
-            except Exception as e:
-                print(f"Could not save {model_name} document: {document}")
-                print(f"Error: {e}")
+        for model_name, file_path in json_files.items():
+            model_class = globals().get(model_name)
+            if not model_class:
+                print(f"Model {model_name} not found in globals()")
+                continue
+
+            # Load JSON data
+            with open(file_path, "r", encoding="utf-8") as f:
+                documents = json.load(f)
+            
+            # Insert documents
+            for document in documents:
+                try:
+                    instance = model_class(**document)
+                    instance.save()
+                    
+                except Exception as e:
+                    print(f"\nCould not save {model_name} document: {document}")
+                    print(f"Error: {e}")
+                    
+    except Exception as e:
+        print(f"Error: {e}")
     
     # Inform the user
     print("Running ODM.py main program...")
@@ -551,44 +570,55 @@ if __name__ == '__main__':
     print("Trying out the project...")
     
     # Create model
-    print("Creating a model object...")
-    clara = User(
-        name="Clara",
-        email="clara.karlsson@example.com",
-        address="Drottninggatan 10, Stockholm, Sweden")
-    
-    # Assign new value to allowed variable of the object
-    print("Value assigned to OK attribute...")
-    clara.age = 29
-    
-    # Assign new value to disallowed variable of the object
-    print("Value assigned to NOT OK attribute...")
-    clara.hair_color = "Blonde"
-    
-    # Save
-    print("Trying to save...")
-    clara.save()
-    
-    # Assign new value to allowed variable of the object
-    print("Value assigned to OK attribute...")
-    clara.age = 28
-    
-    # Save
-    print("Trying to save...")
-    clara.save()
+    try:
+        print("Creating a model object...")
+        clara = User(
+            name="Clara",
+            email="clara.karlsson@example.com",
+            address="Drottninggatan 10, Stockholm, Sweden")
+        
+        # Assign new value to allowed variable of the object
+        print("Value assigned to OK attribute...")
+        clara.age = 29
+        
+        # Assign new value to disallowed variable of the object
+        print("Value assigned to NOT OK attribute...")
+        clara.hair_color = "Blonde"
+        
+        # Save
+        print("Trying to save...")
+        clara.save()
+        
+        # Assign new value to allowed variable of the object
+        print("Value assigned to OK attribute...")
+        clara.age = 28
+        
+        # Save
+        print("Trying to save...")
+        clara.save()
 
-    # Search for new document with find
-    print("Search for newly saved document...")
-    cursor = User.find({"name": clara.name})
-    
-    # Get first document
-    print("Get first document...")
-    first_user_found = next(iter(cursor), None)
-    print("Found:", first_user_found.name, first_user_found.email, first_user_found.address, first_user_found.age)
-    
-    # Modify value of allowed variable
-    print("Changing value of OK attribute...")
-    clara.age = 30
-    
-    # Save
-    clara.save()
+        # Search for new document with find
+        print("Search for newly saved document...")
+        cursor = User.find({"name": clara.name})
+        
+        # Get first document
+        print("Get first document...")
+        first_user_found = next(iter(cursor), None)
+        
+        if first_user_found['address_coordinates']['coordinates']:
+            print("Found:", first_user_found.name, first_user_found.email, first_user_found.address, first_user_found['address_coordinates']['coordinates'])
+            
+        else:
+            print("Found:", first_user_found.name, first_user_found.email, first_user_found.address, first_user_found.address_coordinates)
+            
+            
+        
+        # Modify value of allowed variable
+        print("Changing value of OK attribute...")
+        clara.age = 30
+        
+        # Save
+        clara.save()
+        
+    except Exception as e:
+        print(f"\n\nOBS Error: {e}")

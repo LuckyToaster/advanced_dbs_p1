@@ -35,5 +35,5 @@ python ODM.py
 ```
 
 ## Authors
-Ellen Gemback
+Ellen Gemback and XXX
 # advanced_dbs_p1
