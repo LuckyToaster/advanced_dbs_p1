@@ -1,0 +1,12 @@
+[
+  {"name": "Stockholm University", "center_code": "SU001", "address": "Universitetsvägen 10, Stockholm"},
+  {"name": "Lund University", "center_code": "LU002"},
+  {"name": "Uppsala University", "center_code": "UU003", "address": "Dag Hammarskjölds väg 14, Uppsala"},
+  {"name": "Göteborgs Universitet", "center_code": "GU004"},
+  {"name": "Linköping University", "center_code": "LiU005", "address": "Campus Valla, Linköping"},
+  {"name": "Malmö University", "center_code": "MAU006"},
+  {"name": "Karolinska Institutet", "center_code": "KI007", "address": "Solnavägen 1, Stockholm"},
+  {"name": "Umeå University", "center_code": "UmU008"},
+  {"name": "Örebro University", "center_code": "ÖU009", "address": "Fabriksgatan 8, Örebro"},
+  {"name": "Växjö University", "center_code": "VxU010"}
+]
