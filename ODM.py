@@ -250,8 +250,6 @@ class Model:
                 self._data["_id"] = doc["_id"]
             print("Updated existing user.")
 
-   
-
     def delete(self) -> None:
         """
         Deletes the model from the database.

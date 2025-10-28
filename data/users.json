@@ -6,7 +6,7 @@
   {"name": "Elin", "email": "elin.andersson@gmail.com"},
   {"name": "Fredrik", "email": "fredrik.olsson@gmail.com", "age": 32},
   {"name": "Maja", "email": "maja.persson@gmail.com", "address": "Södra Förstadsgatan 25, Malmö, Sweden"},
-  {"name": "Daniel", "email": "daniel.nilsson@gmail.com"},
+  {"name": "Daniel", "email": "daniel.nilsson@gmail.com", "address": "Ölgången 903, Stockholm, Sweden"},
   {"name": "Anna", "email": "anna.berg@gmail.com", "age": 27, "address": "Klarabergsviadukten 90, Stockholm, Sweden"},
   {"name": "Oskar", "email": "oskar.eriksson@gmail.com"}
 ]
