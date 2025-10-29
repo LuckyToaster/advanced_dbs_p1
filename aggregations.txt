@@ -1,0 +1,54 @@
+
+//List of all people who have studied at the UPM or UAM.
+
+db.users.aggregate([
+    {
+        $match: {
+            educationalCenter: { $in: ["UAM", "UPM"] }
+        }
+    }
+])
+
+//List of the different universities in which people residing in Madrid have studied.
+
+db.users.aggregate([
+    {
+        $match: {
+            "address": Madrid
+            
+
+        }
+        $lookup: {
+            from: "educationalCenter",
+            localField: "educationalCenter"
+            foreignField: "code",
+            as: "studentsInMadrid"
+        }
+    },
+    {
+        $project: {
+            name: 1,
+            surname: 1,
+
+        }
+    }
+
+])
+
+//People who, in their profile description, include the terms "Big Data" or "Artificial Ingeligence"
+db.users.aggregate([
+    $match: {
+
+    }
+
+
+])
+
+4.
+Save in a new table the list of people who have completed one of their studies in 2017 or later.
+5.
+Calculate the average number of studies carried out by people who have worked or work at Microsoft.
+6.
+Average distance to work (geodesic distance) of current Google workers. You can enter Google office coordinates manually.
+7.
+List of the three universities that most often appear as a study center
