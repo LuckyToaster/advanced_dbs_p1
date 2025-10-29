@@ -1,41 +1,51 @@
 Person:
   required_vars:
     - name
-    - surname
   admissible_vars:
     - dni
     - email
     - age
     - address
+    - educational_centre
+    - workplace
   unique_indexes:
     - dni
     - email
   regular_indexes:
     - name
-    - surname
     - age
+    - educational_centre
+    - workplace
   location_index: address
 
 Company:
   required_vars:
     - name
+    - cif
   admissible_vars:
-    - dni
     - address
+    - website
+    - type
   unique_indexes:
-    - dni
+    - cif
   regular_indexes:
     - name
+    - website
+    - type
   location_index: address
 
 EducationalCentre:
   required_vars:
     - name
+    - rutc
   admissible_vars:
     - address
+    - website
   unique_indexes:
-    - name
+    - rutc
   regular_indexes:
+    - name
+    - website
     - address
   location_index: address
 
