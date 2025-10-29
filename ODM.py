@@ -1,17 +1,15 @@
 __author__ = 'Senén'
 __students__ = 'Senén'
 
+import yaml, time, pytest, pymongo
 from typing import Generator, Any, Self
+from random import randint
 
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 from geojson import Point
 from bson.objectid import ObjectId
 
-import yaml, time
-from random import randint
-
-import pymongo
 from pymongo.collection import Collection
 from pymongo.command_cursor import CommandCursor
 from pymongo.cursor import Cursor
@@ -352,33 +350,40 @@ if __name__ == '__main__':
     # Initialize database and models with initApp
     initApp()
 
-    # Example
-    # m = MyModel(name="Pablo", surname="Ramos", age=18)
-    # m.save()
-    # m.name = "Pedro"
-    # print(m.name)
+    uni1 = EducationalCentre(name='UPM') 
+    uni2 = EducationalCentre(name='UAM')
 
-    # Create model
-    p = Person(name="bob", dni='06637264Q', email="bob@example.com", age=24)
+    work1 = Company(name='Deloitte', cif='D45678901')
+    work2 = Company(name='Accenture', cif='C34567890')
+    work3 = Company(name='Microsoft', cif='B23456789')
+
+    p1 = Person(name='alex', dni='23456789B', educational_centre='UPM') 
+    p2 = Person(name='clara', dni='45678901D', educational_centre='UAM')
+
+    uni1.save()
+    uni2.save()
+    work1.save()
+    work2.save()
+    work3.save()
+    p1.save()
+    p2.save()
+
+
+    # from p1
+    p = Person(name="bob", dni='12345678K', email="bob@example.com")
     p.save()
-    # Assign new value to allowed variable of the object
-    p.age = 26
-    # Assign new value to disallowed variable of the object
     try:
         p.favourite_color = 'blue'
     except AttributeError:
         print('favourite color was not allowed and the Attribute error was caught')
-    # Save
     p.save()
-    # Assign new value to allowed variable of the object
-    #p.address = 'C. de Sta. Isabel, 52, Centro, 28012 Madrid'
     p.address = 'Rda. de Valencia, 2, Centro, 28012 Madrid'
-    # Save
     p.save()
-    # Search for new document with find
     for p in Person.find({'name': 'bob' }):
         print(f'found: {p.name}')
 
-    # Get first document
-    # Modify value of allowed variable
-    # Save
+
+    # Automaticall running of tests (to verify the model works correctly)
+    print("Running tests provided by teacher...")
+    pytest.main(["-v", "./"])
+

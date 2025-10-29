@@ -1,21 +1,22 @@
 Person:
   required_vars:
     - name
+    - dni
   admissible_vars:
     - dni
     - email
-    - age
-    - address
+    - description
     - educational_centre
-    - workplace
+    - company
+    - address
   unique_indexes:
     - dni
     - email
   regular_indexes:
     - name
-    - age
+    - description
     - educational_centre
-    - workplace
+    - company
   location_index: address
 
 Company:
@@ -37,15 +38,16 @@ Company:
 EducationalCentre:
   required_vars:
     - name
-    - rutc
   admissible_vars:
     - address
     - website
+    - year_founded
+    - public
   unique_indexes:
-    - rutc
-  regular_indexes:
     - name
+  regular_indexes:
     - website
-    - address
+    - year_funded
+    - public
   location_index: address
 
