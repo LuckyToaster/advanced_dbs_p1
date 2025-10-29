@@ -1,36 +1,41 @@
-User:
+Person:
   required_vars:
     - name
-    - email
+    - surname
   admissible_vars:
+    - dni
+    - email
     - age
     - address
   unique_indexes:
-    - name
-  regular_indexes:
+    - dni
     - email
+  regular_indexes:
+    - name
+    - surname
+    - age
   location_index: address
 
 Company:
   required_vars:
     - name
-    - org_number
   admissible_vars:
+    - dni
     - address
   unique_indexes:
-    - org_number
+    - dni
   regular_indexes:
     - name
   location_index: address
-  
-Educational_center:
+
+EducationalCentre:
   required_vars:
     - name
-    - center_code
   admissible_vars:
     - address
   unique_indexes:
-    - center_code
-  regular_indexes:
     - name
+  regular_indexes:
+    - address
   location_index: address
+
