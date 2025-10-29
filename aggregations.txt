@@ -1,10 +1,20 @@
 
 //List of all people who have studied at the UPM or UAM.
+//Lookup to merch on specific field
+//Match to find educenters which match it
 
 db.users.aggregate([
     {
+        $lookup: {
+            from: "EducationalCentre",
+            localField: "EducationalCentre",
+            foreignField: "code",
+            as: "userEduMerch"
+        }
+    },
+    {
         $match: {
-            educationalCenter: { $in: ["UAM", "UPM"] }
+            "userEduMerch.name": { $in: ["UAM", "UPM"] }
         }
     }
 ])
@@ -14,34 +24,38 @@ db.users.aggregate([
 db.users.aggregate([
     {
         $match: {
-            "address": Madrid
-            
-
+            "address": "Madrid"
         }
+    },
+    {
         $lookup: {
-            from: "educationalCenter",
-            localField: "educationalCenter"
+            from: "EducationalCentre",
+            localField: "EducationalCentre",
             foreignField: "code",
             as: "studentsInMadrid"
         }
     },
     {
         $project: {
-            name: 1,
-            surname: 1,
-
+            "studentsInMadrid.name": 1,
+        }
+    },
+    {
+        $unwind: "$studentsInMadrid"
+    },
+    {
+        $group: {
+            _id: "$studentsInMadrid.name"
         }
     }
-
 ])
 
 //People who, in their profile description, include the terms "Big Data" or "Artificial Ingeligence"
+//i = case insensitive
 db.users.aggregate([
     $match: {
-
+        content: {$regex: "Big Data|Artificial Inteligence", $options: "i"}
     }
-
-
 ])
 
 4.
