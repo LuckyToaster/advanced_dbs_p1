@@ -1,9 +1,10 @@
 __author__ = 'Senén'
 __students__ = 'Senén'
 
-import yaml, time, pytest, pymongo
+import yaml, time, pytest, pymongo, json
 from typing import Generator, Any, Self
 from random import randint
+
 
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
@@ -15,24 +16,15 @@ from pymongo.command_cursor import CommandCursor
 from pymongo.cursor import Cursor
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
+from pymongo.errors import DuplicateKeyError
+
+
+# prettry print 
+def format(data):
+    return json.dumps(data, indent=4, default=str)
 
 
 def getLocationPoint(address: str) -> Point:
-    """
-    Gets the coordinates of an address in geojson.Point format.
-    Uses the geopy API to obtain the coordinates of the address.
-    Be careful, the API is public and has a request limit, use sleeps.
-
-    Parameters
-    ----------
-    address : str
-        Full address from which to obtain coordinates
-
-    Returns
-    -------
-    geojson.Point
-        Coordinates of the address point
-    """
     location = None
     retries = 0
     while retries < 5:
@@ -48,134 +40,81 @@ def getLocationPoint(address: str) -> Point:
     raise ValueError('No se pudieron obtener coordenadas')
 
 
+def initApp(definitions_path: str = "./models.yml", mongodb_uri="mongodb://localhost:27017/", db_name="abd", scope=globals()) -> None:
+    client = MongoClient(mongodb_uri, server_api=ServerApi('1'))
+    db = client[db_name]
+    try:
+        with open(definitions_path) as models_file:
+            for model_name, model_data  in yaml.safe_load(models_file).items():
+                required_vars = model_data['required_vars']
+                admissible_vars = model_data['admissible_vars']
+                indexes = { 
+                    'unique_indexes': model_data['unique_indexes'], 
+                    'regular_indexes': model_data['regular_indexes'], 
+                    'location_index': f'{model_data['location_index']}_loc'
+                }
+                model_class = type(model_name, (Model,), {})
+                model_class.init_class(db.get_collection(model_name), indexes, required_vars, admissible_vars) 
+                scope[model_name] = model_class
+    except FileNotFoundError:
+        print(f'\'{definitions_path}\' not found') 
+
 
 class Model:
-    """
-    Abstract model class.
-    Create as many classes inheriting from this class as
-    collections/models desired in the database.
-
-    Attributes
-    ----------
-    required_vars : set[str]
-        Set of attributes required by the model
-    admissible_vars : set[str]
-        Set of attributes allowed by the model
-    db : pymongo.collection.Collection
-        Connection to the database collection
-
-    Methods
-    -------
-    __setattr__(name: str, value: str | dict) -> None
-        Overrides the attribute assignment method to control
-        which attributes are modified and when.
-    __getattr__(name: str) -> Any
-        Overrides the attribute access method
-    save() -> None
-        Saves the model to the database
-    delete() -> None
-        Deletes the model from the database
-    find(filter: dict[str, str | dict]) -> ModelCursor
-        Performs a read query in the DB.
-        Returns a ModelCursor of models
-    aggregate(pipeline: list[dict]) -> pymongo.command_cursor.CommandCursor
-        Returns the result of an aggregate query.
-    find_by_id(id: str) -> dict | None
-        Searches for a document by its ID using cache and returns it.
-        If not found, returns None.
-    init_class(db_collection: pymongo.collection.Collection, required_vars: set[str], admissible_vars: set[str]) -> None
-        Initializes class variables during system initialization.
-    """
     _required_vars: set[str]
     _admissible_vars: set[str]
-    _location_var: None # initialize this
+    _location_var: None 
     _db: Collection
     _data: dict[str, str | dict] = {} 
 
     def __init__(self, **kwargs: dict[str, str | dict]):
-        """
-        Initializes the model with values provided in kwargs.
-        Checks that the values provided in kwargs are allowed
-        by the model and that required attributes are provided.
-
-        Parameters
-        ----------
-        kwargs : dict[str, str | dict]
-            Dictionary with the model's attribute values
-        """
         super().__setattr__('_data', {}) # bypass the overriden __setattr__
-        
         # check for unallowed keys
         for key in kwargs.keys():
-            required = key in self._required_vars
-            admissible = key in self._admissible_vars
-            id = key != '_id'
-            location = key != self._location_var
-
-            if not required and not admissible and not id and not location:
+            if key not in self._required_vars and key not in self._admissible_vars and key != '_id':
                 raise AttributeError(f'\'{key}\' not allowed in {self.__class__.__name__}')
-
-
         self._data.update(kwargs)
-        # TODO: If _location_var set, get location and assign it
+
 
     def __setattr__(self, name: str, value: str | dict) -> None:
-        """
-        Overrides the attribute assignment method to control
-        which attributes are modified and when.
-        """
         if name not in self._required_vars and name not in self._admissible_vars and name != self._location_var:
             raise AttributeError(f'\'{name}\' not allowed in {self.__class__.__name__}')
-        else:
-            self._data[name] = value
-        # Perform necessary checks and handling
-        # before assignment.
-        # Assign the value to the variable name
+        else: self._data[name] = value
 
 
     def __getattr__(self, name: str) -> Any:
-        """
-        Overrides the attribute access method.
-        __getattr__ is only called when the attribute
-        is not found in the object.
-        """
+        # if name is one of these attributes, get it with its parent's __getattribute__
         if name in {'_modified_vars', '_required_vars', '_admissible_vars', '_db', '_data', '_location_var'}:
-            return super().__getattribute__(name)
-        try:
-            return self._data[name]
-        except KeyError:
-            raise AttributeError
+            return super().__getattribute__(name) 
+        # otherwise get it like this
+        try: return self._data[name]
+        except KeyError: raise AttributeError(f'"{name}" is not a valid attribute for {self.__class__.__name__}')
 
 
     def save(self) -> None:
         if '_id' in self._data:
-            self._db.update_one({'_id': self._data['_id']}, {'$set': self._data})
-            print(f'updated: {self._data}')
+            try: 
+                self._db.update_one({'_id': self._data['_id']}, {'$set': self._data})
+                print(f'updated => {format(self._data)}\n')
+            except DuplicateKeyError: 
+                print(f'DuplicateKeyError when updating {format(self._data)}\n')
         else:
-            self._db.insert_one(self._data)
-            print(f'inserted: {self._data}')
+            try:
+                # get the coordinates for the location_index IF the class has the location_var in its ._data (if an attribute flagged as location_index has been defined / passed in the constructor) 
+                if self._location_var[0:-4] in self._data.keys():
+                    self._data[self._location_var] = getLocationPoint(self._data[self._location_var[0:-4]])
+                self._db.insert_one(self._data)
+                print(f'inserted => {format(self._data)}\n')
+            except DuplicateKeyError: 
+                print(f'DuplicateKeyError when inserting {format(self._data)}\n')
 
 
     def delete(self) -> None:
         self._db.delete_one(self._data)
 
+
     @classmethod
     def find(cls, filter: dict[str, str | dict]) -> Any:
-        """
-        Uses pymongo's find method to perform a read query
-        in the database.
-        find should return a ModelCursor of models.
-
-        Parameters
-        ----------
-        filter : dict[str, str | dict]
-            Dictionary with the search criteria
-
-        Returns
-        -------
-        ModelCursor
-            Cursor of models
-        """
         cursor = cls._db.find(filter)
         return ModelCursor(cls, cursor)
 
@@ -199,6 +138,7 @@ class Model:
         """
         return cls._db.aggregate(pipeline)
 
+
     @classmethod
     def find_by_id(cls, id: str) -> Self | None:
         """
@@ -219,25 +159,9 @@ class Model:
         # TODO
         pass
 
+
     @classmethod
     def init_class(cls, db_collection: Collection, indexes: dict[str, str], required_vars: set[str], admissible_vars: set[str]) -> None:
-        """
-        Initializes class attributes during system initialization.
-        Here, indexes should be initialized or ensured. Additional
-        initialization/checks or changes may also be made
-        as deemed necessary by the student.
-
-        Parameters
-        ----------
-        db_collection : pymongo.collection.Collection
-            Connection to the database collection
-        indexes: Dict[str, str]
-            Set of indexes and index types for the collection
-        required_vars : set[str]
-            Set of attributes required by the model
-        admissible_vars : set[str]
-            Set of attributes allowed by the model
-        """
         cls._db = db_collection
         cls._required_vars = required_vars
         cls._admissible_vars = admissible_vars
@@ -246,14 +170,18 @@ class Model:
         for index in indexes['unique_indexes']:
             cls._db.create_index([(index, pymongo.ASCENDING)], unique=True, sparse=True)
 
-        for index in indexes['location_index']:
-            cls._db.create_index([(indexes['location_index'], pymongo.GEOSPHERE)])
+        # for index in indexes['location_index']:
+        #     cls._db.create_index([(index, pymongo.GEOSPHERE)])
+        #     print(f'creating location index => {index}')
 
-        # TODO
-        # what to do with indexes?
-        # TODO: Add regular index
-        # TODO: Check if location index has been added properly
-        
+        for index in indexes['regular_indexes']:
+            cls._db.create_index([(index, pymongo.ASCENDING)])
+
+        print(f'creating location index => {indexes['location_index']}')
+        cls._db.create_index([(indexes['location_index'], pymongo.GEOSPHERE)])
+
+
+ 
 
 class ModelCursor:
     """
@@ -263,7 +191,8 @@ class ModelCursor:
     Attributes
     ----------
     model_class : Model
-        Class used to create models from the documents being iterated.
+        Class used to create models from the documents being iterated. 'address_loc'}
+creating unique index => email
     cursor : pymongo.cursor.Cursor
         Pymongo cursor to iterate
 
@@ -302,88 +231,85 @@ class ModelCursor:
         # TODO: Use alive variable
 
 
-
-def initApp(definitions_path: str = "./models.yml", mongodb_uri="mongodb://localhost:27017/", db_name="abd", scope=globals()) -> None:
-    """
-    Declares the classes that inherit from Model for each of the
-    models of the collections defined in definitions_path.
-    Initializes the model classes by providing the indexes and
-    allowed and required attributes for each of them, and the connection to the
-    database collection.
-
-    Parameters
-    ----------
-    definitions_path : str
-        Path to the model definitions file
-    mongodb_uri : str
-        URI for connecting to the database
-    db_name : str
-        Name of the database
-    """
-    # Initialize database
-    # Declare as many model classes as there are collections in the database
-    # Read the model definitions file to get the collections, indexes, and the allowed and required attributes for each of them.
-    # Example of model declaration for a collection called MyModel
-    # scope["MyModel"] = type("MyModel", (Model,), {})
-    client = MongoClient(mongodb_uri, server_api=ServerApi('1'))
-    db = client[db_name]
-    try:
-        with open(definitions_path) as models_file:
-            for model_name, model_data  in yaml.safe_load(models_file).items():
-                required_vars = model_data['required_vars']
-                admissible_vars = model_data['admissible_vars']
-                indexes = { 
-                    'unique_indexes': model_data['unique_indexes'], 
-                    'regular_indexes': model_data['regular_indexes'], 
-                    'location_index': f'{model_data['location_index']}_loc' 
-                }
-                model_class = type(model_name, (Model,), {})
-                # indexes, required_vars and admissible_vars are the kwargs
-                model_class.init_class(db.get_collection(model_name), indexes, required_vars, admissible_vars) 
-                scope[model_name] = model_class
-    except FileNotFoundError:
-        print(f'\'{definitions_path}\' not found') 
-    # TODO: Check if variable exists before adding it to list (with indexes)
-
-
 if __name__ == '__main__':
-    # Initialize database and models with initApp
-    initApp()
+    initApp() # Initialize database and models with initApp
 
-    uni1 = EducationalCentre(name='UPM') 
-    uni2 = EducationalCentre(name='UAM')
+    upm = EducationalCentre(name='Universidad Politecnica de Madrid', website='upm.es', year_founded=1971, address='Av. Complutense, s/n, Moncloa - Aravaca, 28040 Madrid')
+    upm.save()
+    uam = EducationalCentre(name='Universidad Autónoma de Madrid', website='uam.es', year_founded=1968, address='C. Francisco Tomás y Valiente, 5, Fuencarral-El Pardo, 28049 Madrid') 
+    uam.save()
+    ucm = EducationalCentre(name='Universidad Complutense de Madrid', website='ucm.es', year_founded=1293, address='Av. Complutense, s/n, Moncloa - Aravaca, 28040 Madrid')
+    ucm.save()
+    utad = EducationalCentre(name='U-TAD: Centro Universitario de Tecnologia y Arte Digital', website='u-tad.com', year_founded=2011, address='C. Playa de Liencres, 2 bis, 28290 Las Rozas de Madrid, Madrid')
+    utad.save()
 
-    work1 = Company(name='Deloitte', cif='D45678901')
-    work2 = Company(name='Accenture', cif='C34567890')
-    work3 = Company(name='Microsoft', cif='B23456789')
+    deloitte = Company(name='Deloitte', cif='D45678901', website='deloitte.com/es', address='Torre Picasso Madrid, Madrid 28020 España')
+    deloitte.save()
+    accenture = Company(name='Accenture', cif='C34567890', website='accenture.com/es', address='P.º de la Castellana, 85, Tetuán, 28046 Madrid')
+    accenture.save()
+    microsoft = Company(name='Microsoft', cif='B23456789', website='microsoft.com/es-es/')
+    microsoft.save()
+    startup = Company(name='Custom Solutions SA', cif='C12345678', website='customsolutions.es', address='Avenida de Europa 10, Pozuelo de Alarcón, Madrid, 28223 España')
+    startup.save()
 
-    p1 = Person(name='alex', dni='23456789B', educational_centre='UPM') 
-    p2 = Person(name='clara', dni='45678901D', educational_centre='UAM')
-
-    uni1.save()
-    uni2.save()
-    work1.save()
-    work2.save()
-    work3.save()
+    p1 = Person(
+            name='alex',
+            email='alex@email.com',
+            description='I like Software Engineering and AI, did i mention i really love AI?',
+            education=[{'name': 'computer science', 'year_graduated': 2026, 'education_centre': upm._id}]) 
     p1.save()
+    p2 = Person(
+        name='clara', 
+        email='clara@email.com', 
+        description='I am passionate about programming, Machine Learning and Data Science',
+        education=[ {'name': 'computer science', 'year_graduated': 2020, 'education_centre': uam._id}, {'name': 'data science', 'year_graduated': 2024, 'education_centre': utad._id} ]
+    )
     p2.save()
 
+    p3 = Person(
+        name='lucas',
+        email='lucas@email.com',
+        description='Software engineer interested in backend systems.',
+        education=[ {'name': 'computer engineering', 'year_graduated': 2019, 'education_centre': ucm._id} ]
+    )
+    p3.save()
 
-    # from p1
-    p = Person(name="bob", dni='12345678K', email="bob@example.com")
-    p.save()
-    try:
-        p.favourite_color = 'blue'
-    except AttributeError:
-        print('favourite color was not allowed and the Attribute error was caught')
-    p.save()
-    p.address = 'Rda. de Valencia, 2, Centro, 28012 Madrid'
-    p.save()
-    for p in Person.find({'name': 'bob' }):
-        print(f'found: {p.name}')
+    p4 = Person(
+        name='maria',
+        email='maria@email.com',
+        description='Data analyst with experience in machine learning.',
+        education=[ {'name': 'data science', 'year_graduated': 2022, 'education_centre': uam._id} ]
+    )
+    p4.save()
 
+    p5 = Person(
+        name='javier',
+        email='javier@email.com',
+        description='Web developer specialized in frontend frameworks.',
+        education=[ {'name': 'multimedia engineering', 'year_graduated': 2021, 'education_centre': utad._id} ]
+    )
+    p5.save()
 
-    # Automaticall running of tests (to verify the model works correctly)
-    print("Running tests provided by teacher...")
-    pytest.main(["-v", "./"])
+    p6 = Person(
+        name='sofia',
+        email='sofia@email.com',
+        description='Cloud computing enthusiast and DevOps engineer.',
+        education=[
+            {'name': 'computer science', 'year_graduated': 2018, 'education_centre': upm._id},
+            {'name': 'information systems', 'year_graduated': 2020, 'education_centre': ucm._id}
+        ]
+    )
+    p6.save()
+
+    # from Practice 1
+    # p = Person(name="bob", email="bob@example.com")
+    # p.save()
+    # try: p.favourite_color = 'blue' 
+    # except Exception as e: print(e)
+    # p.save()
+    # p.address = 'Rda. de Valencia, 2, Centro, 28012 Madrid'
+    # p.save()
+    # for p in Person.find({'name': 'bob' }): print(f'found: {p.name}')
+
+    pytest.main(["-v", "./"]) # Running the professor's tests
 
