@@ -157,10 +157,8 @@ class Model:
             Model of the found document or None if not found
         """
         res =  cls._db.find_one({ '_id': ObjectId(id) })
-        if res: return cls(**res) 
+        if res: return cls(**res) # this is how you pass kwargs
         return None
-
-        
 
 
     @classmethod
@@ -173,14 +171,9 @@ class Model:
         for index in indexes['unique_indexes']:
             cls._db.create_index([(index, pymongo.ASCENDING)], unique=True, sparse=True)
 
-        # for index in indexes['location_index']:
-        #     cls._db.create_index([(index, pymongo.GEOSPHERE)])
-        #     print(f'creating location index => {index}')
-
         for index in indexes['regular_indexes']:
             cls._db.create_index([(index, pymongo.ASCENDING)])
 
-        print(f'creating location index => {indexes['location_index']}')
         cls._db.create_index([(indexes['location_index'], pymongo.GEOSPHERE)])
 
 
@@ -252,19 +245,27 @@ if __name__ == '__main__':
     accenture.save()
     microsoft = Company(name='Microsoft', cif='B23456789', website='microsoft.com/es-es/')
     microsoft.save()
+    google = Company(name='Google', cif='B12345678', website='google.es', address='C. de San Germán, 10, Tetuán, 28020 Madrid')
+    google.save()
     startup = Company(name='Custom Solutions SA', cif='C12345678', website='customsolutions.es', address='Avenida de Europa 10, Pozuelo de Alarcón, Madrid, 28223 España')
     startup.save()
 
     p1 = Person(
-            name='alex',
-            email='alex@email.com',
-            description='I like Software Engineering and AI, did i mention i really love AI?',
-            education=[{'name': 'computer science', 'year_graduated': 2026, 'education_centre': upm._id}]) 
+        name='alex',
+        email='alex@email.com',
+        description='I like Software Engineering and AI, did i mention i really love AI?',
+        address='Calle Triana, 56, 35002 Las Palmas de Gran Canaria, Islas Canarias, España',
+        company=microsoft._id,
+        education=[{'name': 'computer science', 'year_graduated': 2026, 'education_centre': upm._id}]
+    ) 
+    
     p1.save()
     p2 = Person(
         name='clara', 
         email='clara@email.com', 
         description='I am passionate about programming, Machine Learning and Data Science',
+        address='Avinguda Diagonal, 640, 08017 Barcelona, España',
+        company=microsoft._id,
         education=[ {'name': 'computer science', 'year_graduated': 2020, 'education_centre': uam._id}, {'name': 'data science', 'year_graduated': 2024, 'education_centre': utad._id} ]
     )
     p2.save()
@@ -273,6 +274,8 @@ if __name__ == '__main__':
         name='lucas',
         email='lucas@email.com',
         description='Software engineer interested in backend systems.',
+        address='Carrer de Balmes, 200, 08006 Barcelona, España',
+        company=deloitte._id,
         education=[ {'name': 'computer engineering', 'year_graduated': 2019, 'education_centre': ucm._id} ]
     )
     p3.save()
@@ -281,6 +284,8 @@ if __name__ == '__main__':
         name='maria',
         email='maria@email.com',
         description='Data analyst with experience in machine learning.',
+        address='Calle de Serrano, 110, 28006 Madrid, España',
+        company=deloitte._id,
         education=[ {'name': 'data science', 'year_graduated': 2022, 'education_centre': uam._id} ]
     )
     p4.save()
@@ -289,6 +294,8 @@ if __name__ == '__main__':
         name='javier',
         email='javier@email.com',
         description='Web developer specialized in frontend frameworks.',
+        address='Paseo del Prado, 28, 28014 Madrid, España',
+        company=accenture._id,
         education=[ {'name': 'multimedia engineering', 'year_graduated': 2021, 'education_centre': utad._id} ]
     )
     p5.save()
@@ -297,12 +304,34 @@ if __name__ == '__main__':
         name='sofia',
         email='sofia@email.com',
         description='Cloud computing enthusiast and DevOps engineer.',
+        address='Calle de Alcalá, 45, 28014 Madrid, España',
+        company=google._id,
         education=[
             {'name': 'computer science', 'year_graduated': 2018, 'education_centre': upm._id},
             {'name': 'information systems', 'year_graduated': 2020, 'education_centre': ucm._id}
         ]
     )
     p6.save()
+
+    p7 = Person(
+        name='diego',
+        email='diego@email.com',
+        description='AI researcher working on natural language processing.',
+        address='Calle de Serrano, 55, 28006 Madrid, España',
+        company=google._id,
+        education=[{'name': 'computer science', 'year_graduated': 2017, 'education_centre': upm._id}]
+    )
+    p7.save()
+
+    p8 = Person(
+        name='laura',
+        email='laura@email.com',
+        description='Software engineer focusing on cloud infrastructure.',
+        address='Paseo de la Castellana, 150, 28046 Madrid, España',
+        company=startup._id,
+        education=[{'name': 'software engineering', 'year_graduated': 2019, 'education_centre': uam._id}]
+    )
+    p8.save()
 
     # from Practice 1
     # p = Person(name="bob", email="bob@example.com")
