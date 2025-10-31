@@ -238,6 +238,11 @@ if __name__ == '__main__':
     ucm.save()
     utad = EducationalCentre(name='U-TAD: Centro Universitario de Tecnologia y Arte Digital', website='u-tad.com', year_founded=2011, address='C. Playa de Liencres, 2 bis, 28290 Las Rozas de Madrid, Madrid')
     utad.save()
+    ub = EducationalCentre(name='Universitat de Barcelona', website='ub.edu', year_founded=1450, address='Gran Via de les Corts Catalanes, 585, 08007 Barcelona, España')
+    ub.save()
+    ulpgc = EducationalCentre(name='Universidad de Las Palmas de Gran Canaria', website='ulpgc.es', year_founded=1989, address='Campus Universitario de Tafira, 35017 Las Palmas de Gran Canaria, Islas Canarias, España')
+    ulpgc.save()
+
 
     deloitte = Company(name='Deloitte', cif='D45678901', website='deloitte.com/es', address='Torre Picasso Madrid, Madrid 28020 España')
     deloitte.save()
@@ -293,7 +298,7 @@ if __name__ == '__main__':
     p5 = Person(
         name='javier',
         email='javier@email.com',
-        description='Web developer specialized in frontend frameworks.',
+        description='Web developer specialized in frontend frameworks. vibe coding with Artificial Intelligence #AI',
         address='Paseo del Prado, 28, 28014 Madrid, España',
         company=accenture._id,
         education=[ {'name': 'multimedia engineering', 'year_graduated': 2021, 'education_centre': utad._id} ]
@@ -303,7 +308,7 @@ if __name__ == '__main__':
     p6 = Person(
         name='sofia',
         email='sofia@email.com',
-        description='Cloud computing enthusiast and DevOps engineer.',
+        description='Cloud computing enthusiast and DevOps engineer, and i like BIG DATA yo.',
         address='Calle de Alcalá, 45, 28014 Madrid, España',
         company=google._id,
         education=[
@@ -332,6 +337,26 @@ if __name__ == '__main__':
         education=[{'name': 'software engineering', 'year_graduated': 2019, 'education_centre': uam._id}]
     )
     p8.save()
+
+    p9 = Person(
+        name='marc',
+        email='marc@email.com',
+        description='Front-end developer student interested in web technologies.',
+        address='Carrer de Balmes, 250, 08006 Barcelona, España',
+        company=startup._id,
+        education=[{'name': 'computer science', 'year_graduated': 2026, 'education_centre': ub._id}]
+    )
+    p9.save()
+
+    p10 = Person(
+        name='ana',
+        email='ana@email.com',
+        description='Aspiring data scientist passionate about machine learning.',
+        address='Calle Mayor de Triana, 120, 35002 Las Palmas de Gran Canaria, Islas Canarias, España',
+        company=startup._id,
+        education=[{'name': 'data science', 'year_graduated': 2025, 'education_centre': ulpgc._id}]
+    )
+    p10.save()
 
     # from Practice 1
     # p = Person(name="bob", email="bob@example.com")
