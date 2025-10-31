@@ -156,8 +156,11 @@ class Model:
         Self | None
             Model of the found document or None if not found
         """
-        # TODO
-        pass
+        res =  cls._db.find_one({ '_id': ObjectId(id) })
+        if res: return cls(**res) 
+        return None
+
+        
 
 
     @classmethod
