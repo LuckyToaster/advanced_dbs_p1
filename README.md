@@ -46,13 +46,9 @@ What follows is some documentation for the aggregated queries found in `aggregat
 
 ### 1 - List of all people who have studied at the UPM or UAM.
 First, we do a **match** to obtain the 2 EducationalCentres we are interested in.
-
 Then, we do a lookup with the Person collection, where we will obtain 2 documents, one for each university, each with an array of Person documents called 'students_who_went_there' 
-
 We then use **unwind** to flatten our result, which results in an array of EducationalCentre documents each with a 'students_who_went_there' field with a single Person Document, so this operation is like a flatten.
-
 Because we want to obtain a list of students as a result, we use **replaceRoot** 
-
 Finally, we use **project** to obtain only a list of Person documents containing only an ObjectId and name field
 
 ```
