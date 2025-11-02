@@ -46,9 +46,13 @@ What follows is some documentation for the aggregated queries found in `aggregat
 
 ### 1 - List of all people who have studied at the UPM or UAM.
 First, we do a **match** to obtain the 2 EducationalCentres we are interested in.
-Then, we do a lookup with the Person collection, where we will obtain 2 documents, one for each university, each with an array of Person documents called 'students_who_went_there' 
+
+Then, we do a **lookup** with the Person collection, where we will obtain 2 documents, one for each university, each with an array of Person documents called 'students_who_went_there'.
+
 We then use **unwind** to flatten our result, which results in an array of EducationalCentre documents each with a 'students_who_went_there' field with a single Person Document, so this operation is like a flatten.
+
 Because we want to obtain a list of students as a result, we use **replaceRoot** 
+
 Finally, we use **project** to obtain only a list of Person documents containing only an ObjectId and name field
 
 ```
@@ -65,5 +69,45 @@ db.EducationalCentre.aggregate([
     { $unwind: "$students_who_went_there" },
     { $replaceRoot: { newRoot: "$students_who_went_there" } },
     { $project: { name: 1 } }
+])
+```
+
+### 2 - List of the different universities in which people residing in Madrid have studied
+First we **match** all the people with 'Madrid' in their address field.
+Then we populate their education field with universities in a new field using **lookup**
+Then we flatten by 'education' field using **unwind**
+Then we get rid of everything that isn't a list of universities with **replaceRoot**
+Finally a **group** by name gives us the names of the universities in which all persons residing in madrid have attended.
+```
+db.Person.aggregate([
+    { $match: { address: /Madrid/ } },
+    { 
+        $lookup: {
+            from: 'EducationalCentre',
+            localField: 'education.education_centre',
+            foreignField: '_id',
+            as: 'education'
+        }
+    },
+    { $unwind: '$education' },
+    { $replaceRoot: { newRoot: '$education' } },
+    { $group: { _id: '$name' } }
+])
+
+```
+
+### 3 - People who, in their profile description, include the terms "Big Data" or "Artificial Ingeligence"
+Here we match for people who have theese two terms in their description using the **or** operator and **regex**
+```
+db.Person.aggregate([
+    {
+        $match: {
+            $or: [
+                    { description: { $regex: "Big Data", $options: "i" } },
+                    { description: { $regex: "Artificial Intelligence", $options: "i" } }
+            ]
+        }
+    },
+    { $project: { name: 1, description: 1 } }
 ])
 ```

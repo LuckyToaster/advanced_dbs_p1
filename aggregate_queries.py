@@ -24,18 +24,18 @@ for r in res: print(r)
 
 print('Exercise 2')
 res = Person.aggregate([
-    {
+    { '$match': { 'address': re.compile('Madrid', re.IGNORECASE) } },
+    { 
         '$lookup': {
-            'from': "EducationalCentre",
-            'localField': "education.education_centre",
-            'foreignField': "_id",
-            'as': "education_details"
+            'from': 'EducationalCentre',
+            'localField': 'education.education_centre',
+            'foreignField': '_id',
+            'as': 'education'
         }
     },
-    { '$unwind': "$education_details" },
-    { '$match': { "education_details.address": re.compile('Madrid', re.IGNORECASE) } },
-    { '$group': { '_id': "$education_details.name" } },
-    { '$project': { 'university': "$_id", '_id': 0 } }
+    { '$unwind': '$education' },
+    { '$replaceRoot': { 'newRoot': '$education' } },
+    { '$group': { '_id': '$name' } }
 ])
 for r in res: print(r)
 
