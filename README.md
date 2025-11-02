@@ -38,7 +38,7 @@ pip install -r requirements.txt
     ```
     ./scripts/import_collections.sh
     ``` 
-    or alernatively 
+    or, alternatively 
     ```
     python -m scripts.populate_db
     ```
