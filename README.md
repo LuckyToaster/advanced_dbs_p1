@@ -46,13 +46,9 @@ What follows is some documentation for the aggregated queries found in `aggregat
 
 ### 1 - List of all people who have studied at the UPM or UAM.
 First, we do a **match** to obtain the 2 EducationalCentres we are interested in.
-
 Then, we do a **lookup** with the Person collection, where we will obtain 2 documents, one for each university, each with an array of Person documents called 'students_who_went_there'.
-
 We then use **unwind** to flatten our result, which results in an array of EducationalCentre documents each with a 'students_who_went_there' field with a single Person Document, so this operation is like a flatten.
-
 Because we want to obtain a list of students as a result, we use **replaceRoot** 
-
 Finally, we use **project** to obtain only a list of Person documents containing only an ObjectId and name field
 
 ```
@@ -112,10 +108,38 @@ db.Person.aggregate([
 ```
 
 ### 4 - Save in a new table the list of people who have completed one of their studies in 2017 or later
-
+Here we simply do a match selecting education.year_graduated is greater than 2017 using the **gte** operator.
+And we use the **out** operator with the name of the new collection
 ```
 db.Person.aggregate([
     { $match: { "education.year_graduated": { $gte: 2017 } } },
     { $out: "people_graduated_in_2017_or_later" }
 ])
 ```
+
+### 5 - Calculate the average number of studies carried out by people who have worked or work at Microsoft.
+Here we do a lookup to populate the company field of every person, we then do a match to obtain only those people who work at microsoft.
+Finally we project to make a new field called 'n_studies' which contains the size of the educaiton field / array and we use group to obtain the average as a result
+```
+db.Person.aggregate([
+    {
+        $lookup: {
+            from: "Company",
+            localField: "company",
+            foreignField: "_id",
+            as: "company"
+        }
+    },
+    { $match: { "company.name": "Microsoft" } },
+    { $project: { n_studies: { $size: "$education" } } },
+    {
+        $group: {
+            _id: null,
+            avg_studies: { $avg: "$n_studies" }
+        }
+    }
+])
+```
+
+
+

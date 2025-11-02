@@ -73,7 +73,6 @@ res = Person.aggregate([
             'as': 'the_company'
         }
     },
-    { '$unwind': '$the_company' },
     { '$match': { 'the_company.name': 'Microsoft' } },
     { '$project': { 'n_studies': { '$size': '$education' } } },
     {
