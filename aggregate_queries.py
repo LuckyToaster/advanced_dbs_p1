@@ -99,11 +99,11 @@ res = Person.aggregate([
             'from': 'Company',
             'localField': 'company',
             'foreignField': '_id',
-            'as': 'company_data'
+            'as': 'company'
         }
     },
-    { '$unwind': '$company_data' },
-    { '$match': { 'company_data.name': 'Google' } },
+    { '$unwind': '$company' },
+    { '$match': { 'company.name': 'Google' } },
     {
         '$group': {
             '_id': None,

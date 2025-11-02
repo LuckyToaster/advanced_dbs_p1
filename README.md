@@ -124,22 +124,53 @@ Finally we project to make a new field called 'n_studies' which contains the siz
 db.Person.aggregate([
     {
         $lookup: {
-            from: "Company",
-            localField: "company",
-            foreignField: "_id",
-            as: "company"
+            from: 'Company',
+            localField: 'company',
+            foreignField: '_id',
+            as: 'company'
         }
     },
-    { $match: { "company.name": "Microsoft" } },
-    { $project: { n_studies: { $size: "$education" } } },
+    { $match: { 'company.name': 'Microsoft' } },
+    { $project: { n_studies: { $size: '$education' } } },
     {
         $group: {
             _id: null,
-            avg_studies: { $avg: "$n_studies" }
+            avg_studies: { $avg: '$n_studies' }
         }
     }
 ])
 ```
 
 
+### 6 - Average distance to work (geodesic distance) of current Google workers. You can enter Google office coordinates manually. 
+Here we must first use the **geonear** at the begginning of our aggregate, we then must do a lookup to populate the company field and filter out those persons that do not work at Google.
+After we've used the matc, we then calculate the average distance using the **avg** operator on our new field 'distance_to_office'
+```
+db.Person.aggregate([
+    {
+        $geoNear: {
+            near: { type: "Point", coordinates: [-3.692602, 40.456426] },
+            distanceField: "distance_to_office",
+            spherical: true
+        }
+    },
+    {
+        $lookup: {
+            from: "Company",
+            localField: "company",
+            foreignField: "_id",
+            as: "company"
+        }
+    },
+    { $unwind: "$company" },
+    { $match: { "company.name": "Google" } },
+    {
+        $group: {
+            _id: null,
+            avg_distance: { $avg: "$distance_to_office" }
+        }
+    }
+])
+```
 
+### 7 -
