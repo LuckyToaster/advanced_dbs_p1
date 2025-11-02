@@ -93,7 +93,6 @@ db.Person.aggregate([
     { $replaceRoot: { newRoot: '$education' } },
     { $group: { _id: '$name' } }
 ])
-
 ```
 
 ### 3 - People who, in their profile description, include the terms "Big Data" or "Artificial Ingeligence"
@@ -109,5 +108,14 @@ db.Person.aggregate([
         }
     },
     { $project: { name: 1, description: 1 } }
+])
+```
+
+### 4 - Save in a new table the list of people who have completed one of their studies in 2017 or later
+
+```
+db.Person.aggregate([
+    { $match: { "education.year_graduated": { $gte: 2017 } } },
+    { $out: "people_graduated_in_2017_or_later" }
 ])
 ```
