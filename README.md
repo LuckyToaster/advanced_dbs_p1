@@ -34,8 +34,7 @@ python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 ```
-
-3. Populate the DB and execute the code
+2. Populate the DB, execute the code and run the tests
 ```
 ./scripts/import_collections.sh # or alternatively: python -m scripts.populate_db
 python aggregate_queries.py
@@ -43,20 +42,3 @@ pytest ODM_test.py
 ```
 
 
-2. Practice execution
-    1. Populate the DB
-    ```
-    ./scripts/import_collections.sh
-    ``` 
-    or, alternatively 
-    ```
-    python -m scripts.populate_db
-    ```
-    2. Run the practice
-    ```
-    python aggregate_queries.py
-    ```
-3. Optionally, verify the professor's tests pass
-```
-pytest ODM_tests.py
-```
