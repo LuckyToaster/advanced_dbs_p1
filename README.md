@@ -13,8 +13,9 @@ We have included the mandatory files which are the following:
 - `model_test.yml` - Collection definitions for the tests 
 
 In addition, we have included:
-- `aggregate_queries.py` - aggregate queries for this practice 
+- `aggregate_queries.py` - aggregate queries for this practice
 - `data` - directory with DB data in JSON format
+- `requirements.txt` - python dependencies
 - `scripts` directory, containing some useful bash scripts:
     - `export_collections.sh` - export DB data to `data` directory 
     - `import_collections.sh` - improt JSON data from `data` directory into DB
@@ -22,9 +23,9 @@ In addition, we have included:
     - `populate_db.py` - ORM queries initially used to populate the DB
 
 And some miscellaneous files for documentation and git version control:
-- `.gitignore` file 
-- `.git` directory
-- `README.md` Documentation
+- `.gitignore`
+- `.git`
+- `README.md` 
 
 ## Running the Project
 1. Create python virtual environment, activate it and install the dependencies
