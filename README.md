@@ -51,6 +51,3 @@ pip install -r requirements.txt
 ```
 pytest ODM_tests.py
 ```
-```
-
-
