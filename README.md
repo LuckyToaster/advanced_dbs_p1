@@ -34,9 +34,22 @@ source env/bin/activate
 pip install -r requirements.txt
 ```
 2. Practice execution
-    1. Poppulate the DB with ```./scripts/import_collections.sh``` or alernatively ```python -m scripts.populate_db```
-    2. Run the practice code with ```python aggregate_queries.py```
-3. Optionally, verify the proffessor's tests pass with ```pytest ODM_tests.py```
+    1. Poppulate the DB with 
+    ```
+    ./scripts/import_collections.sh
+    ``` 
+    or alernatively 
+    ```
+    python -m scripts.populate_db
+    ```
+    2. Run the practice code with 
+    ```
+    python aggregate_queries.py
+    ```
+3. Optionally, verify the proffessor's tests pass with 
+```
+pytest ODM_tests.py
+```
 ```
 
 
