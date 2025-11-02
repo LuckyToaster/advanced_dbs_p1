@@ -27,32 +27,16 @@ And some miscellaneous files for documentation and git version control:
 - `README.md` Documentation
 
 ## Running the Project
-### 1 - Prepare Python Virtual Environment for Execution
-Create a python virtual environment and install the dependencies
+1. Create python virtual environment, activate it and install the dependencies
 ```
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 ```
-
-### 2 - Execution
-In order to execute the second practice, we must first popoulate the DB, this can be done by either running 
-```
-./scripts/import_collections.sh
-``` 
-or, alternatively
-```
-python -m scripts.populate_db`
-```
-
-After the DB is populated with data, we can run the practice with
-```
-python aggregate_queries.py
-```
-
-Optionally we can verify that the ORM passes the professor's tests with:
-```
-pytest ODM_tests.py
+2. Practice execution
+    1. Poppulate the DB with `./scripts/import_collections.sh` or alernatively `python -m scripts.populate_db`
+    2. Run the practice code with `python aggregate_queries.py`
+3. Optionally, verify the proffessor's tests pass with `pytest ODM_tests.py`
 ```
 
 
