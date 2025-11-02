@@ -1,39 +1,57 @@
-# Advanced-Databases
-Project work for the course Advanced Databases (2509_INSG3_ABDS_A) at u-tad in Madrid, Spain.
+# Advanced-Databases 2nd Project
+Project work for the course Advanced Databases (2509_INSG3_ABDS_A) 
 
-### Dependencies
-- [pymongo](https://pymongo.readthedocs.io/en/stable/)
-- [pyyaml](https://pyyaml.org/wiki/PyYAMLDocumentation)
-- [geojson](https://geojson.org/)
-- [geopy](https://geopy.readthedocs.io/en/stable/)
-- [typing](https://docs.python.org/3/library/typing.html)
-- [pytest](https://pypi.org/project/pytest/)
+### Authors
+- Ellen Gemback
+- Senén Marqués
 
-Typing is included in versions of python 3.5 or later
+## Project structure
+We have included the mandatory files which are the following:
+- `ODM.py`: Our ORM library
+- `models.yml`: Collection definitions for the practice
+- `ODM_test.py`: Tests provided by the teacher for the previous practice
+- `model_test.yml`: Collection definitions for the tests 
 
-### Installing
-Install the python package handler [pip](https://pypi.org/project/pip/)
-Install [Miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install#linux-2) (If you do not already have it installed).
+In addition, we have included:
+- `data` directory, containing data for each collection in our DB, in JSON format
+- `scripts` directory, containing some useful bash scripts:
+    - `export_collections.sh` for exporting the data from the DB into the `data` directory, in JSON format
+    - `import_collections.sh` for importing the JSON data from the `data` directory into the DB
+    - `start_mongo.sh` for starting the systemd `mongodb` service, if this service isn't running, it will not be possible to execute the code
+    - `populate_db.py` contains the ORM queries initially used to populate the DB, can be ran from the root direcory with `python -m scripts.populate_db`
 
-### Executing program
-* Open the map "Advanced_Databases_Practice1_Ellen_Gemback" in the terminal of your choice.
+And some miscellaneous files for documentation and git version control:
+- `.gitignore` file 
+- `.git` directory
+- `README.md` Documentation
 
-* Create and activate a Miniconda virtual environment
+## Running the Project
+### 1 - Prepare Python Virtual Environment for Execution
+Create a python virtual environment and install the dependencies
 ```
-conda create -n mongo python=3.12
-conda activate mongo
-```
-
-* Download required pyhton libraries inside of the virtual environment.
-```
+python -m venv env
+source env/bin/activate
 pip install -r requirements.txt
 ```
 
-* Run the main file
+### 2 - Execution
+In order to execute the second practice, we must first popoulate the DB, this can be done by either running 
 ```
-python ODM.py
+./scripts/import_collections.sh
+``` 
+or, alternatively
+```
+python -m scripts.populate_db`
 ```
 
-## Authors
-- Ellen Gemback
-- Senén Marqués
+After the DB is populated with data, we can run the practice with
+```
+python aggregate_queries.py
+```
+
+Optionally we can verify that the ORM passes the professor's tests with:
+```
+pytest ODM_tests.py
+```
+
+
