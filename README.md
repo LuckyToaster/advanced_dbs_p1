@@ -27,13 +27,22 @@ And some miscellaneous files for documentation and git version control:
 - `.git`
 - `README.md` 
 
-## Running the Project
+## Running the Practice
 1. Create python virtual environment, activate it and install the dependencies
 ```
 python -m venv env
 source env/bin/activate
 pip install -r requirements.txt
 ```
+
+3. Populate the DB and execute the code
+```
+./scripts/import_collections.sh # or alternatively: python -m scripts.populate_db
+python aggregate_queries.py
+pytest ODM_test.py
+```
+
+
 2. Practice execution
     1. Populate the DB
     ```
