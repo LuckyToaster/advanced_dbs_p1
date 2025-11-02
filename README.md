@@ -7,18 +7,19 @@ Project work for the course Advanced Databases (2509_INSG3_ABDS_A)
 
 ## Project structure
 We have included the mandatory files which are the following:
-- `ODM.py`: Our ORM library
-- `models.yml`: Collection definitions for the practice
-- `ODM_test.py`: Tests provided by the teacher for the previous practice
-- `model_test.yml`: Collection definitions for the tests 
+- `ODM.py` - Our ORM library
+- `models.yml` - Collection definitions for the practice
+- `ODM_test.py` - Tests provided by the teacher for the previous practice
+- `model_test.yml` - Collection definitions for the tests 
 
 In addition, we have included:
-- `data` directory, containing data for each collection in our DB, in JSON format
+- `aggregate_queries.py` - aggregate queries for this practice 
+- `data` - directory with DB data in JSON format
 - `scripts` directory, containing some useful bash scripts:
-    - `export_collections.sh` for exporting the data from the DB into the `data` directory, in JSON format
-    - `import_collections.sh` for importing the JSON data from the `data` directory into the DB
-    - `start_mongo.sh` for starting the systemd `mongodb` service, if this service isn't running, it will not be possible to execute the code
-    - `populate_db.py` contains the ORM queries initially used to populate the DB, can be ran from the root direcory with `python -m scripts.populate_db`
+    - `export_collections.sh` - export DB data to `data` directory 
+    - `import_collections.sh` - improt JSON data from `data` directory into DB
+    - `start_mongo.sh` - start systemd `mongodb` service, which is **critical for running the practice**
+    - `populate_db.py` - ORM queries initially used to populate the DB
 
 And some miscellaneous files for documentation and git version control:
 - `.gitignore` file 
