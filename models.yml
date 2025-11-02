@@ -1,0 +1,48 @@
+Person:
+  required_vars:
+    - name
+    - email
+  admissible_vars:
+    - description
+    - company
+    - education
+    - address
+  unique_indexes:
+    - email
+  regular_indexes:
+    - name
+    - description
+    - company
+    - education
+  location_index: address
+
+Company:
+  required_vars:
+    - name
+    - cif
+  admissible_vars:
+    - address
+    - website
+  unique_indexes:
+    - cif
+  regular_indexes:
+    - name
+    - website
+    - address
+  location_index: address
+
+EducationalCentre:
+  required_vars:
+    - name
+  admissible_vars:
+    - address
+    - website
+    - year_founded
+  unique_indexes:
+    - name
+  regular_indexes:
+    - website
+    - year_funded
+    - address
+  location_index: address
+
