@@ -173,4 +173,26 @@ db.Person.aggregate([
 ])
 ```
 
-### 7 -
+### 7 - List of the three universities that most often appear as a study center of the people registered. Show university and the number of times it appears.
+Here we do a lookup to populate the education field of every person, then we unwind education field to obtain a document for every university entry, then we group by education.name and do a count, which results in every university and its count of how many times it appears.
+Finally we do a sort and limit the result to 3 to obtain the required formatting for our result
+```
+db.Person.aggregate([
+    {
+        $lookup: {
+            from: 'EducationalCentre',
+            localField: 'education.education_centre',
+            foreignField: '_id',
+            as: 'education'
+        }
+    },
+    { $unwind: '$education' },
+    { 
+        $group: {
+            _id: '$education.name',
+            count: { $sum: 1 }
+        }
+    },
+    { $sort: { count: -1 } },
+    { $limit: 3 },
+])

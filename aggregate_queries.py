@@ -45,8 +45,8 @@ res = Person.aggregate([
     {
         '$match': {
             '$or': [
-                    { 'description': { '$regex': "Big Data", '$options': "i" } },
-                    { 'description': { '$regex': "Artificial Intelligence", '$options': "i" } }
+                { 'description': { '$regex': "Big Data", '$options': "i" } },
+                { 'description': { '$regex': "Artificial Intelligence", '$options': "i" } }
             ]
         }
     },
@@ -110,5 +110,27 @@ res = Person.aggregate([
             'avg_distance': { '$avg': '$distance_to_office' }
         }
     }
+])
+for r in res: print(r)
+
+print('Exercise 7')
+res = Person.aggregate([
+    {
+        '$lookup': {
+            'from': 'EducationalCentre',
+            'localField': 'education.education_centre',
+            'foreignField': '_id',
+            'as': 'education'
+        }
+    },
+    { '$unwind': '$education' },
+    { 
+        '$group': {
+            '_id': '$education.name',
+            'count': { '$sum': 1 }
+        }
+    },
+    { '$sort': { 'count': -1 } },
+    { '$limit': 3 },
 ])
 for r in res: print(r)
